@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Rehabilitation Research Assistant</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f0f4f8;
+            color: #333;
+            line-height: 1.6;
+        }
+        .container { max-width: 960px; margin: 0 auto; padding: 20px; }
+        header {
+            background: linear-gradient(135deg, #1a5276, #2e86c1);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+            border-radius: 0 0 12px 12px;
+        }
+        header h1 { font-size: 1.8rem; margin-bottom: 8px; }
+        header p { opacity: 0.9; font-size: 0.95rem; }
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 24px;
+            margin: 20px 0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .card h2 { color: #1a5276; margin-bottom: 16px; font-size: 1.2rem; }
+        .form-group { margin-bottom: 14px; }
+        label { display: block; font-weight: 600; margin-bottom: 6px; font-size: 0.9rem; }
+        input[type="text"], input[type="number"], textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s;
+        }
+        input:focus, textarea:focus { border-color: #2e86c1; outline: none; }
+        textarea { resize: vertical; min-height: 80px; }
+        .btn {
+            display: inline-block;
+            padding: 10px 24px;
+            background: #2e86c1;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            margin-right: 8px;
+            margin-top: 8px;
+        }
+        .btn:hover { background: #1a5276; }
+        .btn:disabled { background: #95a5a6; cursor: not-allowed; }
+        .btn-secondary { background: #27ae60; }
+        .btn-secondary:hover { background: #1e8449; }
+        .btn-tertiary { background: #8e44ad; }
+        .btn-tertiary:hover { background: #6c3483; }
+        .spinner { display: none; text-align: center; padding: 20px; color: #2e86c1; }
+        .spinner.active { display: block; }
+        .results { margin-top: 16px; }
+        .article-item {
+            border-left: 4px solid #2e86c1;
+            padding: 12px 16px;
+            margin: 10px 0;
+            background: #f8f9fa;
+            border-radius: 0 8px 8px 0;
+        }
+        .article-item h3 { font-size: 0.95rem; color: #1a5276; }
+        .article-item .meta { font-size: 0.8rem; color: #666; margin-top: 4px; }
+        .article-item .abstract { font-size: 0.85rem; margin-top: 8px; }
+        .analysis-result {
+            background: #f0f9ff;
+            border: 1px solid #bee3f8;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 16px;
+            white-space: pre-wrap;
+            font-size: 0.9rem;
+            line-height: 1.7;
+        }
+        .error { color: #e74c3c; background: #fdf0ef; padding: 12px; border-radius: 8px; }
+        .hidden { display: none; }
+        .row { display: flex; gap: 12px; }
+        .row input { flex: 1; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>AI Rehabilitation Research Assistant</h1>
+        <p>Search PubMed, analyze research with AI, and gain actionable insights</p>
+    </header>
+
+    <div class="container">
+        <!-- Search Section -->
+        <div class="card">
+            <h2>Search Rehabilitation Research</h2>
+            <form id="searchForm">
+                <div class="form-group">
+                    <label for="query">Research Topic</label>
+                    <input type="text" id="query" placeholder="e.g., stroke rehabilitation, spinal cord injury recovery" required>
+                </div>
+                <div class="form-group">
+                    <label for="maxResults">Max Articles (1-20)</label>
+                    <input type="number" id="maxResults" value="5" min="1" max="20">
+                </div>
+                <button type="submit" class="btn" id="searchBtn">Search PubMed</button>
+            </form>
+            <div class="spinner" id="searchSpinner">Searching PubMed...</div>
+            <div id="searchError" class="error hidden"></div>
+        </div>
+
+        <!-- Results Section -->
+        <div class="card hidden" id="resultsCard">
+            <h2>Articles Found (<span id="articleCount">0</span>)</h2>
+            <div id="articleList" class="results"></div>
+
+            <!-- Analysis Actions -->
+            <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 16px;">
+                <h2>AI Analysis</h2>
+                <div class="form-group">
+                    <label for="question">Ask a question about this research:</label>
+                    <textarea id="question" placeholder="e.g., What are the most effective approaches for post-stroke motor recovery?"></textarea>
+                </div>
+                <button class="btn" id="analyzeBtn" onclick="analyzeArticles()">Analyze</button>
+                <button class="btn btn-secondary" id="summarizeBtn" onclick="summarizeArticles()">Summarize All</button>
+                <button class="btn btn-tertiary" id="compareBtn" onclick="toggleCompare()">Compare Treatments</button>
+
+                <div id="compareSection" class="hidden" style="margin-top: 12px;">
+                    <div class="row">
+                        <input type="text" id="treatmentA" placeholder="Treatment A (e.g., physical therapy)">
+                        <input type="text" id="treatmentB" placeholder="Treatment B (e.g., robotic-assisted therapy)">
+                    </div>
+                    <button class="btn btn-tertiary" onclick="compareTreatments()" style="margin-top: 8px;">Run Comparison</button>
+                </div>
+            </div>
+
+            <div class="spinner" id="analysisSpinner">AI is analyzing the research...</div>
+            <div id="analysisResult" class="analysis-result hidden"></div>
+            <div id="analysisError" class="error hidden"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentArticles = [];
+
+        document.getElementById('searchForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const query = document.getElementById('query').value.trim();
+            const maxResults = document.getElementById('maxResults').value;
+            if (!query) return;
+
+            showSpinner('searchSpinner');
+            hideElement('searchError');
+            hideElement('resultsCard');
+            document.getElementById('searchBtn').disabled = true;
+
+            const formData = new FormData();
+            formData.append('query', query);
+            formData.append('max_results', maxResults);
+
+            try {
+                const response = await fetch('/search', { method: 'POST', body: formData });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showError('searchError', data.error || 'Search failed.');
+                    return;
+                }
+
+                currentArticles = data.articles;
+                renderArticles(data.articles);
+                document.getElementById('articleCount').textContent = data.count;
+                showElement('resultsCard');
+            } catch (err) {
+                showError('searchError', 'Network error. Please try again.');
+            } finally {
+                hideSpinner('searchSpinner');
+                document.getElementById('searchBtn').disabled = false;
+            }
+        });
+
+        function renderArticles(articles) {
+            const list = document.getElementById('articleList');
+            list.innerHTML = articles.map(a => `
+                <div class="article-item">
+                    <h3><a href="${a.url}" target="_blank">${a.title}</a></h3>
+                    <div class="meta">
+                        ${a.authors.join('; ')} &mdash; <em>${a.journal}</em> (${a.year})
+                    </div>
+                    <div class="abstract">${a.abstract.substring(0, 300)}${a.abstract.length > 300 ? '...' : ''}</div>
+                </div>
+            `).join('');
+        }
+
+        async function analyzeArticles() {
+            const question = document.getElementById('question').value.trim();
+            if (!question) { alert('Please enter a question.'); return; }
+            await callAI('/analyze', { articles: currentArticles, question });
+        }
+
+        async function summarizeArticles() {
+            await callAI('/summarize', { articles: currentArticles });
+        }
+
+        function toggleCompare() {
+            const section = document.getElementById('compareSection');
+            section.classList.toggle('hidden');
+        }
+
+        async function compareTreatments() {
+            const a = document.getElementById('treatmentA').value.trim();
+            const b = document.getElementById('treatmentB').value.trim();
+            if (!a || !b) { alert('Please enter both treatments.'); return; }
+            await callAI('/compare', { articles: currentArticles, treatment_a: a, treatment_b: b });
+        }
+
+        async function callAI(endpoint, body) {
+            showSpinner('analysisSpinner');
+            hideElement('analysisResult');
+            hideElement('analysisError');
+            setAnalysisButtons(true);
+
+            try {
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body),
+                });
+                const data = await response.json();
+
+                if (!response.ok) {
+                    showError('analysisError', data.error || 'Analysis failed.');
+                    return;
+                }
+
+                const result = data.analysis || data.summary || data.comparison || '';
+                document.getElementById('analysisResult').textContent = result;
+                showElement('analysisResult');
+            } catch (err) {
+                showError('analysisError', 'Network error during analysis.');
+            } finally {
+                hideSpinner('analysisSpinner');
+                setAnalysisButtons(false);
+            }
+        }
+
+        function setAnalysisButtons(disabled) {
+            ['analyzeBtn', 'summarizeBtn', 'compareBtn'].forEach(id => {
+                document.getElementById(id).disabled = disabled;
+            });
+        }
+
+        function showSpinner(id) { document.getElementById(id).classList.add('active'); }
+        function hideSpinner(id) { document.getElementById(id).classList.remove('active'); }
+        function showElement(id) { document.getElementById(id).classList.remove('hidden'); }
+        function hideElement(id) { document.getElementById(id).classList.add('hidden'); }
+        function showError(id, msg) {
+            const el = document.getElementById(id);
+            el.textContent = msg;
+            el.classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
